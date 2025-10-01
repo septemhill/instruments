@@ -17,7 +17,8 @@ typedef struct {
 typedef struct {
     MusicEvent *events;
     int event_count;
-    double time_signature_beats; // Beats per measure (e.g., 4.0 for 4/4 time)
+    int beats_per_measure;       // Time signature numerator (e.g., 4 for 4/4 time)
+    int beat_unit;               // Time signature denominator (e.g., 4 for a quarter-note beat)
     double bpm;                  // Optional: BPM for this measure. If 0, use previous BPM.
 } Measure;
 
@@ -58,17 +59,17 @@ MusicEvent melody_m5[] = {{G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {F4, QUARTER_N
 MusicEvent melody_m6[] = {{E4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {D4, HALF_NOTE}};
 
 Measure melody_measures[] = {
-    {melody_m1, sizeof(melody_m1)/sizeof(MusicEvent), 4.0, 100.0}, // Start at 100 BPM
-    {melody_m2, sizeof(melody_m2)/sizeof(MusicEvent), 4.0, 0},
-    {melody_m3, sizeof(melody_m3)/sizeof(MusicEvent), 4.0, 0},
-    {melody_m4, sizeof(melody_m4)/sizeof(MusicEvent), 4.0, 160.0}, // Speed up to 160 BPM!
-    {melody_m5, sizeof(melody_m5)/sizeof(MusicEvent), 4.0, 0},
-    {melody_m6, sizeof(melody_m6)/sizeof(MusicEvent), 4.0, 0},
+    {melody_m1, sizeof(melody_m1)/sizeof(MusicEvent), 4, 4, 100.0}, // 4/4 Time, Start at 100 BPM
+    {melody_m2, sizeof(melody_m2)/sizeof(MusicEvent), 4, 4, 0},
+    {melody_m3, sizeof(melody_m3)/sizeof(MusicEvent), 4, 4, 0},
+    {melody_m4, sizeof(melody_m4)/sizeof(MusicEvent), 4, 4, 160.0}, // Speed up to 160 BPM!
+    {melody_m5, sizeof(melody_m5)/sizeof(MusicEvent), 4, 4, 0},
+    {melody_m6, sizeof(melody_m6)/sizeof(MusicEvent), 4, 4, 0},
     // Repeat
-    {melody_m1, sizeof(melody_m1)/sizeof(MusicEvent), 4.0, 100.0}, // Back to 100 BPM
-    {melody_m2, sizeof(melody_m2)/sizeof(MusicEvent), 4.0, 0},
-    {melody_m3, sizeof(melody_m3)/sizeof(MusicEvent), 4.0, 0},
-    {melody_m4, sizeof(melody_m4)/sizeof(MusicEvent), 4.0, 0},
+    {melody_m1, sizeof(melody_m1)/sizeof(MusicEvent), 4, 4, 100.0}, // Back to 100 BPM
+    {melody_m2, sizeof(melody_m2)/sizeof(MusicEvent), 4, 4, 0},
+    {melody_m3, sizeof(melody_m3)/sizeof(MusicEvent), 4, 4, 0},
+    {melody_m4, sizeof(melody_m4)/sizeof(MusicEvent), 4, 4, 0},
 };
 
 // --- Chord Track Data ---
@@ -79,20 +80,69 @@ MusicEvent chord_m3[] = {{0, WHOLE_NOTE}}; // C Major
 MusicEvent chord_m4[] = {{3, WHOLE_NOTE}}; // F Major
 
 Measure chord_measures[] = {
-    {chord_m1, 1, 4.0, 100.0}, // Start at 100 BPM
-    {chord_m2, 1, 4.0, 0},
-    {chord_m3, 1, 4.0, 0},
-    {chord_m4, 1, 4.0, 160.0}, // Speed up to 160 BPM!
-    {chord_m1, 1, 4.0, 0},
-    {chord_m2, 1, 4.0, 0},
+    {chord_m1, 1, 4, 4, 100.0}, // 4/4 Time, Start at 100 BPM
+    {chord_m2, 1, 4, 4, 0},
+    {chord_m3, 1, 4, 4, 0},
+    {chord_m4, 1, 4, 4, 160.0}, // Speed up to 160 BPM!
+    {chord_m1, 1, 4, 4, 0},
+    {chord_m2, 1, 4, 4, 0},
     // Repeat
-    {chord_m1, 1, 4.0, 100.0}, // Back to 100 BPM
-    {chord_m2, 1, 4.0, 0},
-    {chord_m3, 1, 4.0, 0},
-    {chord_m4, 1, 4.0, 0},
+    {chord_m1, 1, 4, 4, 100.0}, // Back to 100 BPM
+    {chord_m2, 1, 4, 4, 0},
+    {chord_m3, 1, 4, 4, 0},
+    {chord_m4, 1, 4, 4, 0},
+};
+
+// --- Bassline Track Data ---
+// A simple bassline playing the root note of each chord in a lower octave.
+MusicEvent bass_m1[] = {{C3, WHOLE_NOTE}}; // C
+MusicEvent bass_m2[] = {{G2, WHOLE_NOTE}}; // G
+MusicEvent bass_m3[] = {{C3, WHOLE_NOTE}}; // C
+MusicEvent bass_m4[] = {{F2, WHOLE_NOTE}}; // F
+
+Measure bass_measures[] = {
+    {bass_m1, 1, 4, 4, 100.0}, // 4/4 Time, Matches tempo changes
+    {bass_m2, 1, 4, 4, 0},
+    {bass_m3, 1, 4, 4, 0},
+    {bass_m4, 1, 4, 4, 160.0},
+    {bass_m1, 1, 4, 4, 0},
+    {bass_m2, 1, 4, 4, 0},
+    {bass_m1, 1, 4, 4, 100.0},
+    {bass_m2, 1, 4, 4, 0},
+    {bass_m3, 1, 4, 4, 0},
+    {bass_m4, 1, 4, 4, 0},
 };
 
 // --- Cleanup Functions ---
+
+/**
+ * @brief Validates the score to ensure measures have the correct number of beats.
+ * @param tracks Array of tracks to validate.
+ * @param num_tracks Number of tracks in the array.
+ */
+void validate_score(Track* tracks, int num_tracks) {
+    printf("Validating score...\n");
+    for (int t = 0; t < num_tracks; t++) {
+        for (int m = 0; m < tracks[t].measure_count; m++) {
+            Measure* measure = &tracks[t].measures[m];
+            double total_duration_in_quarter_notes = 0;
+            for (int e = 0; e < measure->event_count; e++) {
+                total_duration_in_quarter_notes += measure->events[e].duration;
+            }
+
+            // Calculate the expected duration of the measure in quarter notes.
+            // e.g., for 3/8 time, this is 3 * (4.0 / 8) = 1.5 quarter notes.
+            // e.g., for 4/4 time, this is 4 * (4.0 / 4) = 4.0 quarter notes.
+            double expected_duration = (double)measure->beats_per_measure * (4.0 / (double)measure->beat_unit);
+
+            // Compare with a small tolerance for floating point inaccuracies.
+            if (fabs(total_duration_in_quarter_notes - expected_duration) > 1e-6) {
+                printf("  [WARNING] Track '%s', Measure %d: For %d/%d time, expected total duration of %.2f quarter notes, but found %.2f.\n",
+                       tracks[t].name, m + 1, measure->beats_per_measure, measure->beat_unit, expected_duration, total_duration_in_quarter_notes);
+            }
+        }
+    }
+}
 
 void restore_terminal(void) {
     // Placeholder for potential future terminal state restoration
@@ -137,9 +187,13 @@ int main(int argc, char **argv) {
     Track all_tracks[] = {
         {"Piano Melody",  TRACK_MELODY, 1, melody_measures, sizeof(melody_measures)/sizeof(Measure)},
         {"Violin Chords", TRACK_CHORD,  2, chord_measures,  sizeof(chord_measures)/sizeof(Measure)},
-        {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  sizeof(chord_measures)/sizeof(Measure)}
+        {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  sizeof(chord_measures)/sizeof(Measure)},
+        {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   sizeof(bass_measures)/sizeof(Measure)} // New Bassline Track
     };
     int num_tracks = sizeof(all_tracks) / sizeof(Track);
+
+    // Validate score before playing
+    validate_score(all_tracks, num_tracks);
 
     // 4. Setup Real-time Player State
     TrackState *track_states = (TrackState*)calloc(num_tracks, sizeof(TrackState));
