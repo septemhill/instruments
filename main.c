@@ -1,14 +1,6 @@
 #include <csound.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h> // for toupper()
-
-// For non-blocking keyboard input on macOS/Linux
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-
-static struct termios old_tio, new_tio;
 
 // --- 輔助結構和定義 ---
 
@@ -53,24 +45,45 @@ struct Chord chords[] = {
 };
 const int NUM_CHORDS = 7;
 
-// --- 終端機設定與清理函數 (保持不變) ---
+// --- 自動播放序列定義 ---
 
-void setup_terminal(void) {
-    tcgetattr(STDIN_FILENO, &old_tio);
-    new_tio = old_tio;
-    new_tio.c_lflag &= (~ICANON & ~ECHO); // 關閉標準模式和回顯
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
-    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK); // 設置為非阻塞
-}
+// 事件類型
+typedef enum {
+    EVENT_NOTE,
+    EVENT_CHORD,
+    EVENT_REST
+} EventType;
+
+// 音樂事件結構
+typedef struct {
+    EventType type;
+    int value;      // 對於 NOTE: full_frequencies 的索引; 對於 CHORD: chords 的索引
+    double duration; // 事件持續時間 (秒)
+} MusicEvent;
+
+// 定義一個簡單的音樂序列 (C -> G -> Am -> F 和弦進行)
+MusicEvent sequence[] = {
+    {EVENT_CHORD, 0, 2.0}, // C Major (chords[0]), 持續 2 秒
+    {EVENT_CHORD, 4, 2.0}, // G Major (chords[4]), 持續 2 秒
+    {EVENT_CHORD, 5, 2.0}, // A Minor (chords[5]), 持續 2 秒
+    {EVENT_CHORD, 3, 2.0}, // F Major (chords[3]), 持續 2 秒
+    {EVENT_REST,  0, 1.0}, // 休止 1 秒
+    {EVENT_NOTE,  0, 0.5}, // C4
+    {EVENT_NOTE,  1, 0.5}, // D4
+    {EVENT_NOTE,  2, 1.0}, // E4
+};
+const int SEQUENCE_LENGTH = sizeof(sequence) / sizeof(MusicEvent);
+
+
+// --- 清理函數 ---
 
 void restore_terminal(void) {
-    tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
 }
 
 void cleanup(CSOUND* csound) {
     csoundStop(csound);
     csoundDestroy(csound);
-    restore_terminal();
+    // restore_terminal() 不再需要
 }
 
 // --- 主要程式碼 ---
@@ -83,9 +96,6 @@ int main() {
         return 1;
     }
 
-    // 設定終端機以便即時讀取鍵盤輸入
-    setup_terminal();
-    printf("Press keys 1-7 for single notes, Q-U for chords. Press 'q' to quit.\n");
 
     // 2. 設定輸出
     csoundSetOption(csound, "-odac");
@@ -125,71 +135,57 @@ int main() {
         return 1;
     }
 
-    // 4. Score (保持不變 - 讓 Csound 持續運行)
-    const char *sco =
-        "f0 3600\n";
+    // 4. Score (動態生成)
+    printf("Generating score from sequence...\n");
+    double currentTime = 0.0; // 記錄目前在樂譜中的時間點
 
-    if (csoundReadScore(csound, sco) != 0) {
-        fprintf(stderr, "Error: Score reading failed.\n");
-        cleanup(csound);
-        return 1;
+    for (int i = 0; i < SEQUENCE_LENGTH; i++) {
+        MusicEvent event = sequence[i];
+        char score_event[128];
+
+        switch (event.type) {
+            case EVENT_NOTE: {
+                double freq = full_frequencies[event.value];
+                double amp = 0.5;
+                // i1 [start_time] [duration] [frequency] [amplitude]
+                sprintf(score_event, "i1 %f %f %f %f", currentTime, event.duration, freq, amp);
+                csoundInputMessage(csound, score_event);
+                printf("  Note: time=%.2f, dur=%.2f, freq=%.2f\n", currentTime, event.duration, freq);
+                break;
+            }
+            case EVENT_CHORD: {
+                struct Chord c = chords[event.value];
+                double amp = 0.35; // 和弦中每個音的音量較低以防破音
+                printf("  Chord %s: time=%.2f, dur=%.2f\n", c.key, currentTime, event.duration);
+                for (int j = 0; j < 3; j++) {
+                    int index = c.indices[j];
+                    if (index >= 0 && index < NUM_FREQUENCIES) {
+                        double freq = full_frequencies[index];
+                        sprintf(score_event, "i1 %f %f %f %f", currentTime, event.duration, freq, amp);
+                        csoundInputMessage(csound, score_event);
+                    }
+                }
+                break;
+            }
+            case EVENT_REST: {
+                printf("  Rest: time=%.2f, dur=%.2f\n", currentTime, event.duration);
+                // 休止符只需要增加時間，不需要發送事件
+                break;
+            }
+        }
+        // 更新下一個事件的開始時間
+        currentTime += event.duration;
     }
 
     // 5. 啟動 Csound 引擎並執行
+    printf("\nStarting Csound playback...\n");
     if (csoundStart(csound) == 0) {
-        while (csoundPerformKsmps(csound) == 0) {
-            // 非阻塞地讀取一個字元
-            char c;
-            if (read(STDIN_FILENO, &c, 1) > 0) {
-                
-                // 處理單音 (1-7)
-                if (c >= '1' && c <= '7') {
-                    int note_index = c - '1';
-                    // 使用 full_frequencies 陣列的前七個音符
-                    double freq = full_frequencies[note_index]; 
-                    char event[128];
-                    // i1 0 1.5 freq 0.5 (instr 1, start 0, duration 1.5, freq, amplitude 0.5)
-                    sprintf(event, "i1 0 1.5 %f 0.5", freq); 
-                    csoundInputMessage(csound, event);
-                }
-                // 處理和弦 (Q, W, E, R, T, Y, U)
-                else if (c == 'Q' || c == 'W' || c == 'E' || c == 'R' || c == 'T' || c == 'Y' || c == 'U' ||
-                         c == 'q' || c == 'w' || c == 'e' || c == 'r' || c == 't' || c == 'y' || c == 'u') {
-                    
-                    char upper_c = toupper(c);
-                    
-                    for (int i = 0; i < NUM_CHORDS; i++) {
-                        if (chords[i].key[0] == upper_c) {
-                            double dur = 2.0;  // 和弦持續時間
-                            // 和弦中每個音符的音量要調低，以避免三個音疊加導致音訊訊號超載 (Clipping)
-                            double amp = 0.35; 
-
-                            for (int j = 0; j < 3; j++) {
-                                int index = chords[i].indices[j];
-                                
-                                // 檢查索引是否有效
-                                if (index < NUM_FREQUENCIES && index >= 0) {
-                                    double freq = full_frequencies[index];
-                                    char event[128];
-                                    // 每個音符發送一個獨立的 i-event
-                                    sprintf(event, "i1 0 %f %f %f", dur, freq, amp);
-                                    csoundInputMessage(csound, event);
-                                }
-                            }
-                            break; // 處理完畢，跳出 for 迴圈
-                        }
-                    }
-                }
-                // 處理退出 ('q')
-                else if (c == 'q') {
-                    break;
-                }
-            }
-        }
+        // 迴圈直到 Csound 完成所有排程的事件
+        while (csoundPerformKsmps(csound) == 0);
     }
 
     // 6. 清理資源
-    printf("Score finished. Cleaning up Csound resources.\n");
+    printf("\nPlayback finished. Cleaning up Csound resources.\n");
     cleanup(csound);
 
     return 0;
