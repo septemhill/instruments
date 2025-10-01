@@ -13,7 +13,7 @@ static const char* orc_header =
     "0dbfs = 1\n\n";
 
 static const char* piano_instr =
-    "; Instrument 1: 鋼琴\n"
+    "; Instrument 1: Piano\n"
     "instr 1\n"
     "    i_freq = p4\n"
     "    i_amp = p5\n"
@@ -29,7 +29,7 @@ static const char* piano_instr =
     "endin\n\n";
 
 static const char* violin_instr =
-    "; Instrument 2: 小提琴\n"
+    "; Instrument 2: Violin\n"
     "instr 2\n"
     "    i_freq = p4\n"
     "    i_amp = p5\n"
@@ -46,7 +46,7 @@ static const char* violin_instr =
     "endin\n\n";
 
 static const char* viola_instr =
-    "; Instrument 3: 中提琴\n"
+    "; Instrument 3: Viola\n"
     "instr 3\n"
     "    i_freq = p4\n"
     "    i_amp = p5\n"
