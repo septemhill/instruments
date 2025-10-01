@@ -4,114 +4,42 @@
 #include <string.h>
 #include "instrument_piano.h"
 #include "instruments.h"
+#include "score.h"
 
-// --- Polyphonic Score Structure ---
+// --- Player Engine Structures ---
 
-// Music event structure
+/**
+ * @brief Holds the real-time playback state for a single track.
+ *
+ * This structure tracks the current position within the score for a track,
+ * allowing the player to know which event to play next and when.
+ */
 typedef struct {
-    int value;       // PianoKey enum value (for melody) or chords array index (for chords)
-    double duration; // Event duration in beats (e.g., 1.0 for a quarter note)
-} MusicEvent;
-
-// Measure structure
-typedef struct {
-    MusicEvent *events;
-    int event_count;
-    int beats_per_measure;       // Time signature numerator (e.g., 4 for 4/4 time)
-    int beat_unit;               // Time signature denominator (e.g., 4 for a quarter-note beat)
-    double bpm;                  // Optional: BPM for this measure. If 0, use previous BPM.
-} Measure;
-
-// Real-time player state for each track
-typedef struct {
-    int current_measure;
-    int current_event_in_measure;
-    double next_event_time;
+    int current_measure;          /**< Index of the current measure being played. */
+    int current_event_in_measure; /**< Index of the current event within the measure. */
+    double next_event_time;       /**< The absolute time in seconds when the next event should be triggered. */
 } TrackState;
 
-// Track type
+/**
+ * @brief Defines the type of a track, which determines how its events are interpreted.
+ */
 typedef enum {
-    TRACK_MELODY,
-    TRACK_CHORD
+    TRACK_MELODY, /**< A monophonic melody line where each event is a single note. */
+    TRACK_CHORD   /**< A polyphonic chord line where each event represents a full chord. */
 } TrackType;
 
-// Track structure
+/**
+ * @brief Represents a complete musical track, including its score and metadata.
+ *
+ * A track is a sequence of measures played by a specific instrument.
+ */
 typedef struct {
-    const char *name;    // Track name for logging
-    TrackType type;      // Track type
-    int instrument;      // Csound instrument number to use
-    Measure *measures;
-    int measure_count;
+    const char *name;    /**< The name of the track, used for logging and identification. */
+    TrackType type;      /**< The type of the track (e.g., melody or chord). */
+    int instrument;      /**< The Csound instrument number (from the orchestra) to use for this track. */
+    Measure *measures;   /**< A pointer to an array of Measure structures that make up the track's score. */
+    int measure_count;   /**< The total number of measures in the track. */
 } Track;
-
-// --- "Twinkle, Twinkle, Little Star" Score Definition (with melody and chords) ---
-// Note durations are now defined in "beats" relative to a quarter note.
-const double QUARTER_NOTE = 1.0; // A quarter note is 1 beat.
-const double HALF_NOTE    = 2.0; // A half note is 2 beats.
-const double WHOLE_NOTE   = 4.0; // A whole note is 4 beats.
-
-// --- Melody Track Data ---
-MusicEvent melody_m1[] = {{C4, QUARTER_NOTE}, {C4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}};
-MusicEvent melody_m2[] = {{A4, QUARTER_NOTE}, {A4, QUARTER_NOTE}, {G4, HALF_NOTE}};
-MusicEvent melody_m3[] = {{F4, QUARTER_NOTE}, {F4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {E4, QUARTER_NOTE}};
-MusicEvent melody_m4[] = {{D4, QUARTER_NOTE}, {D4, QUARTER_NOTE}, {C4, HALF_NOTE}};
-MusicEvent melody_m5[] = {{G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {F4, QUARTER_NOTE}, {F4, QUARTER_NOTE}};
-MusicEvent melody_m6[] = {{E4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {D4, HALF_NOTE}};
-
-Measure melody_measures[] = {
-    {melody_m1, sizeof(melody_m1)/sizeof(MusicEvent), 4, 4, 100.0}, // 4/4 Time, Start at 100 BPM
-    {melody_m2, sizeof(melody_m2)/sizeof(MusicEvent), 4, 4, 0},
-    {melody_m3, sizeof(melody_m3)/sizeof(MusicEvent), 4, 4, 0},
-    {melody_m4, sizeof(melody_m4)/sizeof(MusicEvent), 4, 4, 160.0}, // Speed up to 160 BPM!
-    {melody_m5, sizeof(melody_m5)/sizeof(MusicEvent), 4, 4, 0},
-    {melody_m6, sizeof(melody_m6)/sizeof(MusicEvent), 4, 4, 0},
-    // Repeat
-    {melody_m1, sizeof(melody_m1)/sizeof(MusicEvent), 4, 4, 100.0}, // Back to 100 BPM
-    {melody_m2, sizeof(melody_m2)/sizeof(MusicEvent), 4, 4, 0},
-    {melody_m3, sizeof(melody_m3)/sizeof(MusicEvent), 4, 4, 0},
-    {melody_m4, sizeof(melody_m4)/sizeof(MusicEvent), 4, 4, 0},
-};
-
-// --- Chord Track Data ---
-// Chord indices correspond to the `chords` array: 0='Q'(C), 3='R'(F), 4='T'(G)
-MusicEvent chord_m1[] = {{0, WHOLE_NOTE}}; // C Major
-MusicEvent chord_m2[] = {{4, WHOLE_NOTE}}; // G Major
-MusicEvent chord_m3[] = {{0, WHOLE_NOTE}}; // C Major
-MusicEvent chord_m4[] = {{3, WHOLE_NOTE}}; // F Major
-
-Measure chord_measures[] = {
-    {chord_m1, 1, 4, 4, 100.0}, // 4/4 Time, Start at 100 BPM
-    {chord_m2, 1, 4, 4, 0},
-    {chord_m3, 1, 4, 4, 0},
-    {chord_m4, 1, 4, 4, 160.0}, // Speed up to 160 BPM!
-    {chord_m1, 1, 4, 4, 0},
-    {chord_m2, 1, 4, 4, 0},
-    // Repeat
-    {chord_m1, 1, 4, 4, 100.0}, // Back to 100 BPM
-    {chord_m2, 1, 4, 4, 0},
-    {chord_m3, 1, 4, 4, 0},
-    {chord_m4, 1, 4, 4, 0},
-};
-
-// --- Bassline Track Data ---
-// A simple bassline playing the root note of each chord in a lower octave.
-MusicEvent bass_m1[] = {{C3, WHOLE_NOTE}}; // C
-MusicEvent bass_m2[] = {{G2, WHOLE_NOTE}}; // G
-MusicEvent bass_m3[] = {{C3, WHOLE_NOTE}}; // C
-MusicEvent bass_m4[] = {{F2, WHOLE_NOTE}}; // F
-
-Measure bass_measures[] = {
-    {bass_m1, 1, 4, 4, 100.0}, // 4/4 Time, Matches tempo changes
-    {bass_m2, 1, 4, 4, 0},
-    {bass_m3, 1, 4, 4, 0},
-    {bass_m4, 1, 4, 4, 160.0},
-    {bass_m1, 1, 4, 4, 0},
-    {bass_m2, 1, 4, 4, 0},
-    {bass_m1, 1, 4, 4, 100.0},
-    {bass_m2, 1, 4, 4, 0},
-    {bass_m3, 1, 4, 4, 0},
-    {bass_m4, 1, 4, 4, 0},
-};
 
 // --- Cleanup Functions ---
 
@@ -185,10 +113,10 @@ int main(int argc, char **argv) {
 
     // 3. Setup Tracks
     Track all_tracks[] = {
-        {"Piano Melody",  TRACK_MELODY, 1, melody_measures, sizeof(melody_measures)/sizeof(Measure)},
-        {"Violin Chords", TRACK_CHORD,  2, chord_measures,  sizeof(chord_measures)/sizeof(Measure)},
-        {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  sizeof(chord_measures)/sizeof(Measure)},
-        {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   sizeof(bass_measures)/sizeof(Measure)} // New Bassline Track
+        {"Piano Melody",  TRACK_MELODY, 1, melody_measures, MELODY_MEASURE_COUNT},
+        {"Violin Chords", TRACK_CHORD,  2, chord_measures,  CHORD_MEASURE_COUNT},
+        {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  CHORD_MEASURE_COUNT},
+        {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   BASS_MEASURE_COUNT}
     };
     int num_tracks = sizeof(all_tracks) / sizeof(Track);
 

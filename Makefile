@@ -13,7 +13,7 @@ CSOUND_HOME = /opt/homebrew/Cellar/csound/6.18.1_12
 TARGET = csound_example
 
 # Source files
-SRCS = main.c instrument_piano.c instruments.c
+SRCS = main.c instrument_piano.c instruments.c score.c
 
 # Object files
 OBJS = $(SRCS:.c=.o)
