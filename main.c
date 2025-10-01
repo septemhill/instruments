@@ -123,17 +123,36 @@ void generate_piano_frequencies() {
     }
 }
 
-// --- 音名索引常數 (對應 piano_key_frequencies 陣列) ---
-// 讓樂譜定義更具可讀性
-const int C4 = 39, D4 = 41, E4 = 43, F4 = 44, G4 = 46, A4 = 48, B4 = 50;
-const int C5 = 51, E5 = 55;
+// --- 音名索引 Enum (對應 piano_key_frequencies 陣列) ---
+// 使用 Enum 讓音符定義更具型別安全性與可讀性。
+// 's' 代表升記號 (sharp)，例如 Cs4 代表 C#4。
+typedef enum {
+    // Octave 0
+    A0 = 0, As0, B0,
+    // Octave 1
+    C1, Cs1, D1, Ds1, E1, F1, Fs1, G1, Gs1, A1, As1, B1,
+    // Octave 2
+    C2, Cs2, D2, Ds2, E2, F2, Fs2, G2, Gs2, A2, As2, B2,
+    // Octave 3
+    C3, Cs3, D3, Ds3, E3, F3, Fs3, G3, Gs3, A3, As3, B3,
+    // Octave 4 (中央八度)
+    C4, Cs4, D4, Ds4, E4, F4, Fs4, G4, Gs4, A4, As4, B4,
+    // Octave 5
+    C5, Cs5, D5, Ds5, E5, F5, Fs5, G5, Gs5, A5, As5, B5,
+    // Octave 6
+    C6, Cs6, D6, Ds6, E6, F6, Fs6, G6, Gs6, A6, As6, B6,
+    // Octave 7
+    C7, Cs7, D7, Ds7, E7, F7, Fs7, G7, Gs7, A7, As7, B7,
+    // Octave 8
+    C8
+} PianoKey;
 
 
 // C 大調中的和弦定義 (三和弦)
-// 每個和弦由三個音高組成 (音階索引: 根音, 三度音, 五度音)
+// 每個和弦由三個音高組成 (根音, 三度音, 五度音)
 struct Chord {
     const char *key;
-    int indices[3]; // 存放 piano_key_frequencies 的索引
+    PianoKey indices[3]; // 存放 PianoKey enum，對應 piano_key_frequencies 的索引
 };
 
 // 使用 QWERTYUI 鍵來觸發和弦
@@ -147,7 +166,7 @@ struct Chord chords[] = {
     // R: F Major (IV)
     {"R", {F4, A4, C5}},
     // T: G Major (V)
-    {"T", {G4, B4, D4}},
+    {"T", {G4, B4, D4}}, // 使用 D4 讓和弦轉位更緊湊
     // Y: A Minor (vi)
     {"Y", {A4, C5, E5}},
     // U: B Diminished (vii°)
@@ -155,34 +174,63 @@ struct Chord chords[] = {
 };
 const int NUM_CHORDS = 7;
 
-// --- 自動播放序列定義 ---
-
-// 事件類型
-typedef enum {
-    EVENT_NOTE,
-    EVENT_CHORD,
-    EVENT_REST
-} EventType;
+// --- 多聲部樂譜結構 ---
 
 // 音樂事件結構
 typedef struct {
-    EventType type;
-    int value;      // 對於 NOTE: piano_key_frequencies 的索引; 對於 CHORD: chords 的索引
+    int value;      // PianoKey enum 值 (用於旋律) 或 chords 陣列索引 (用於和弦)
     double duration; // 事件持續時間 (秒)
 } MusicEvent;
 
-// 定義一個簡單的音樂序列 (C -> G -> Am -> F 和弦進行)
-MusicEvent sequence[] = {
-    {EVENT_CHORD, 0, 2.0}, // C Major (I), 持續 2 秒
-    {EVENT_CHORD, 4, 2.0}, // G Major (V), 持續 2 秒
-    {EVENT_CHORD, 5, 2.0}, // A Minor (vi), 持續 2 秒
-    {EVENT_CHORD, 3, 2.0}, // F Major (IV), 持續 2 秒
-    {EVENT_REST, 0, 1.0},  // 休止 1 秒
-    {EVENT_NOTE, C4, 0.5}, // 播放 C4
-    {EVENT_NOTE, D4, 0.5}, // 播放 D4
-    {EVENT_NOTE, E4, 1.0}, // 播放 E4
+// 聲部結構
+typedef struct {
+    MusicEvent *events;
+    int count;
+} Track;
+
+// --- 《小星星》樂譜定義 (含旋律與和弦) ---
+
+const double QUARTER_NOTE = 0.4; // 四分音符時長
+const double HALF_NOTE = 0.8;    // 二分音符時長
+const double WHOLE_NOTE = 1.6;   // 全音符時長
+
+// 聲部 1: 旋律 (Melody)
+MusicEvent melody_events[] = {
+    // C C G G A A G-
+    {C4, QUARTER_NOTE}, {C4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE},
+    {A4, QUARTER_NOTE}, {A4, QUARTER_NOTE}, {G4, HALF_NOTE},
+    // F F E E D D C-
+    {F4, QUARTER_NOTE}, {F4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {E4, QUARTER_NOTE},
+    {D4, QUARTER_NOTE}, {D4, QUARTER_NOTE}, {C4, HALF_NOTE},
+    // G G F F E E D-
+    {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {F4, QUARTER_NOTE}, {F4, QUARTER_NOTE},
+    {E4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {D4, HALF_NOTE},
+    // G G F F E E D-
+    {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {F4, QUARTER_NOTE}, {F4, QUARTER_NOTE},
+    {E4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {D4, HALF_NOTE},
+    // C C G G A A G-
+    {C4, QUARTER_NOTE}, {C4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE},
+    {A4, QUARTER_NOTE}, {A4, QUARTER_NOTE}, {G4, HALF_NOTE},
+    // F F E E D D C-
+    {F4, QUARTER_NOTE}, {F4, QUARTER_NOTE}, {E4, QUARTER_NOTE}, {E4, QUARTER_NOTE},
+    {D4, QUARTER_NOTE}, {D4, QUARTER_NOTE}, {C4, HALF_NOTE},
 };
-const int SEQUENCE_LENGTH = sizeof(sequence) / sizeof(MusicEvent);
+
+// 聲部 2: 和弦 (Chords)
+// 和弦索引對應 `chords` 陣列: 0=C, 3=F, 4=G
+MusicEvent chord_events[] = {
+    {0, WHOLE_NOTE}, // C Major
+    {4, WHOLE_NOTE}, // G Major
+    {0, WHOLE_NOTE}, // C Major
+    {3, WHOLE_NOTE}, // F Major
+    {0, WHOLE_NOTE}, // C Major
+    {4, WHOLE_NOTE}, // G Major
+    {0, WHOLE_NOTE}, // C Major
+    {3, WHOLE_NOTE}, // F Major
+    {0, WHOLE_NOTE}, // C Major
+    {4, WHOLE_NOTE}, // G Major
+    {0, WHOLE_NOTE}, // C Major
+};
 
 
 // --- 清理函數 ---
@@ -250,44 +298,47 @@ int main() {
 
     // 4. Score (動態生成)
     printf("Generating score from sequence...\n");
-    double currentTime = 0.0; // 記錄目前在樂譜中的時間點
 
-    for (int i = 0; i < SEQUENCE_LENGTH; i++) {
-        MusicEvent event = sequence[i];
+    // 定義我們的聲部
+    Track melody_track = {melody_events, sizeof(melody_events) / sizeof(MusicEvent)};
+    Track chord_track = {chord_events, sizeof(chord_events) / sizeof(MusicEvent)};
+
+    // 為每個聲部產生 Csound score 事件
+    // --- 處理旋律聲部 ---
+    double current_time = 0.0;
+    for (int i = 0; i < melody_track.count; i++) {
+        MusicEvent event = melody_track.events[i];
         char score_event[128];
+        double freq = piano_key_frequencies[event.value];
+        double amp = 0.5; // 旋律音量
 
-        switch (event.type) {
-            case EVENT_NOTE: {
-                double freq = piano_key_frequencies[event.value];
-                double amp = 0.5;
-                // i1 [start_time] [duration] [frequency] [amplitude]
-                sprintf(score_event, "i1 %f %f %f %f", currentTime, event.duration, freq, amp);
+        sprintf(score_event, "i1 %f %f %f %f", current_time, event.duration, freq, amp);
+        csoundInputMessage(csound, score_event);
+        printf("  Melody Note: time=%.2f, dur=%.2f, freq=%.2f\n", current_time, event.duration, freq);
+
+        current_time += event.duration; // 推進這個聲部的時間
+    }
+
+    printf("\n");
+
+    // --- 處理和弦聲部 ---
+    current_time = 0.0; // 重置時間給新的聲部
+    for (int i = 0; i < chord_track.count; i++) {
+        MusicEvent event = chord_track.events[i];
+        char score_event[128];
+        struct Chord c = chords[event.value];
+        double amp = 0.3; // 和弦音量稍低，避免蓋過旋律
+
+        printf("  Chord %s: time=%.2f, dur=%.2f\n", c.key, current_time, event.duration);
+        for (int j = 0; j < 3; j++) {
+            PianoKey index = c.indices[j];
+            if (index >= 0 && index < NUM_PIANO_KEYS) {
+                double freq = piano_key_frequencies[index];
+                sprintf(score_event, "i1 %f %f %f %f", current_time, event.duration, freq, amp);
                 csoundInputMessage(csound, score_event);
-                printf("  Note: time=%.2f, dur=%.2f, freq=%.2f\n", currentTime, event.duration, freq);
-                break;
-            }
-            case EVENT_CHORD: {
-                struct Chord c = chords[event.value];
-                double amp = 0.35; // 和弦中每個音的音量較低以防破音
-                printf("  Chord %s: time=%.2f, dur=%.2f\n", c.key, currentTime, event.duration);
-                for (int j = 0; j < 3; j++) {
-                    int index = c.indices[j];
-                    if (index >= 0 && index < NUM_PIANO_KEYS) {
-                        double freq = piano_key_frequencies[index];
-                        sprintf(score_event, "i1 %f %f %f %f", currentTime, event.duration, freq, amp);
-                        csoundInputMessage(csound, score_event);
-                    }
-                }
-                break;
-            }
-            case EVENT_REST: {
-                printf("  Rest: time=%.2f, dur=%.2f\n", currentTime, event.duration);
-                // 休止符只需要增加時間，不需要發送事件
-                break;
             }
         }
-        // 更新下一個事件的開始時間
-        currentTime += event.duration;
+        current_time += event.duration; // 推進這個聲部的時間
     }
 
     // 5. 啟動 Csound 引擎並執行
