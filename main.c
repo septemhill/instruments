@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "instrument_piano.h"
+#include "instruments.h"
 
 // --- 多聲部樂譜結構 ---
 
@@ -127,83 +128,17 @@ int main() {
     // 2. 設定輸出
     csoundSetOption(csound, "-odac");
 
-    // 3. Orchestra (新增三種樂器)
-    const char *orc =
-        "sr = 44100\n"
-        "ksmps = 32\n"
-        "nchnls = 2\n"
-        "0dbfs = 1\n"
-        "\n"
-        "; Instrument 1: 鋼琴\n"
-        "instr 1\n"
-        "    i_freq = p4\n"
-        "    i_amp = p5\n"
-        "    i_dur = p3\n"
-        "\n"
-        "    ; 主音\n"
-        "    a_env1 linsegr 0, 0.01, i_amp, i_dur, 0\n"
-        "    a_sig1 oscili a_env1, i_freq\n"
-        "\n"
-        "    ; 第二泛音\n"
-        "    a_env2 linsegr 0, 0.01, i_amp*0.6, i_dur*0.7, 0\n"
-        "    a_sig2 oscili a_env2, i_freq*2\n"
-        "\n"
-        "    ; 第三泛音 (輕微失諧)\n"
-        "    a_env3 linsegr 0, 0.01, i_amp*0.3, i_dur*0.4, 0\n"
-        "    a_sig3 oscili a_env3, i_freq*3.01\n"
-        "\n"
-        "    ; 混合所有波形\n"
-        "    a_mix = (a_sig1 + a_sig2 + a_sig3) * 0.5\n"
-        "    outs a_mix, a_mix\n"
-        "endin\n"
-        "\n"
-        "; Instrument 2: 小提琴\n"
-        "instr 2\n"
-        "    i_freq = p4\n"
-        "    i_amp = p5\n"
-        "    i_dur = p3\n"
-        "\n"
-        "    ; 小提琴音色：緩慢的起音和豐富的泛音\n"
-        "    a_env linsegr 0, 0.08, i_amp, i_dur-0.1, i_amp*0.7, 0.02, 0\n"
-        "\n"
-        "    ; 基頻\n"
-        "    a_sig1 oscili a_env, i_freq\n"
-        "    ; 強烈的奇數泛音 (3, 5, 7)\n"
-        "    a_sig2 oscili a_env*0.7, i_freq*3\n"
-        "    a_sig3 oscili a_env*0.4, i_freq*5\n"
-        "    a_sig4 oscili a_env*0.2, i_freq*7\n"
-        "    ; 加入少許顫音 (vibrato)\n"
-        "    k_vib oscili 5, 5.5\n"
-        "    a_vibrato oscili a_env*0.8, i_freq+k_vib\n"
-        "\n"
-        "    a_mix = (a_sig1 + a_sig2 + a_sig3 + a_sig4 + a_vibrato) * 0.3\n"
-        "    outs a_mix, a_mix\n"
-        "endin\n"
-        "\n"
-        "; Instrument 3: 中提琴\n"
-        "instr 3\n"
-        "    i_freq = p4\n"
-        "    i_amp = p5\n"
-        "    i_dur = p3\n"
-        "\n"
-        "    ; 中提琴音色：較暗、較溫暖，偏重低泛音\n"
-        "    a_env linsegr 0, 0.1, i_amp, i_dur-0.12, i_amp*0.75, 0.02, 0\n"
-        "\n"
-        "    ; 基頻和低泛音為主\n"
-        "    a_sig1 oscili a_env, i_freq\n"
-        "    a_sig2 oscili a_env*0.8, i_freq*2\n"
-        "    a_sig3 oscili a_env*0.5, i_freq*3\n"
-        "    a_sig4 oscili a_env*0.3, i_freq*4\n"
-        "    ; 中提琴的顫音較慢\n"
-        "    k_vib oscili 4, 4.8\n"
-        "    a_vibrato oscili a_env*0.7, i_freq+k_vib\n"
-        "\n"
-        "    a_mix = (a_sig1 + a_sig2 + a_sig3 + a_sig4 + a_vibrato) * 0.35\n"
-        "    outs a_mix, a_mix\n"
-        "endin\n";
-
+    // 3. Orchestra (從 instruments 模組動態組合)
+    char *orc = get_orchestra_string();
+    if (orc == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for orchestra string.\n");
+        cleanup(csound);
+        return 1;
+    }
+    
     if (csoundCompileOrc(csound, orc) != 0) {
         fprintf(stderr, "Error: Orchestra compilation failed.\n");
+        free(orc); // 釋放記憶體
         cleanup(csound);
         return 1;
     }
@@ -270,6 +205,7 @@ int main() {
 
     // 6. 清理資源
     printf("\nPlayback finished. Cleaning up Csound resources.\n");
+    free(orc); // 釋放記憶體
     cleanup(csound);
 
     return 0;
