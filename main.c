@@ -182,8 +182,16 @@ typedef struct {
     double duration; // 事件持續時間 (秒)
 } MusicEvent;
 
+// 聲部類型
+typedef enum {
+    TRACK_MELODY,
+    TRACK_CHORD
+} TrackType;
+
 // 聲部結構
 typedef struct {
+    const char *name;   // 聲部名稱，方便日誌輸出
+    TrackType type;     // 聲部類型
     MusicEvent *events;
     int count;
 } Track;
@@ -298,47 +306,50 @@ int main() {
 
     // 4. Score (動態生成)
     printf("Generating score from sequence...\n");
+    
+    // 將所有聲部組織到一個陣列中
+    Track all_tracks[] = {
+        {"Melody", TRACK_MELODY, melody_events, sizeof(melody_events) / sizeof(MusicEvent)},
+        {"Chords", TRACK_CHORD,  chord_events,  sizeof(chord_events) / sizeof(MusicEvent)}
+        // 未來可以輕鬆加入更多聲部, 例如:
+        // {"Bassline", TRACK_CHORD, bass_events, sizeof(bass_events) / sizeof(MusicEvent)}
+    };
+    int num_tracks = sizeof(all_tracks) / sizeof(Track);
 
-    // 定義我們的聲部
-    Track melody_track = {melody_events, sizeof(melody_events) / sizeof(MusicEvent)};
-    Track chord_track = {chord_events, sizeof(chord_events) / sizeof(MusicEvent)};
+    // 使用一個迴圈處理所有聲部
+    for (int t = 0; t < num_tracks; t++) {
+        Track current_track = all_tracks[t];
+        double current_time = 0.0;
+        printf("\nProcessing Track: %s\n", current_track.name);
 
-    // 為每個聲部產生 Csound score 事件
-    // --- 處理旋律聲部 ---
-    double current_time = 0.0;
-    for (int i = 0; i < melody_track.count; i++) {
-        MusicEvent event = melody_track.events[i];
-        char score_event[128];
-        double freq = piano_key_frequencies[event.value];
-        double amp = 0.5; // 旋律音量
+        for (int i = 0; i < current_track.count; i++) {
+            MusicEvent event = current_track.events[i];
+            char score_event[128];
 
-        sprintf(score_event, "i1 %f %f %f %f", current_time, event.duration, freq, amp);
-        csoundInputMessage(csound, score_event);
-        printf("  Melody Note: time=%.2f, dur=%.2f, freq=%.2f\n", current_time, event.duration, freq);
-
-        current_time += event.duration; // 推進這個聲部的時間
-    }
-
-    printf("\n");
-
-    // --- 處理和弦聲部 ---
-    current_time = 0.0; // 重置時間給新的聲部
-    for (int i = 0; i < chord_track.count; i++) {
-        MusicEvent event = chord_track.events[i];
-        char score_event[128];
-        struct Chord c = chords[event.value];
-        double amp = 0.3; // 和弦音量稍低，避免蓋過旋律
-
-        printf("  Chord %s: time=%.2f, dur=%.2f\n", c.key, current_time, event.duration);
-        for (int j = 0; j < 3; j++) {
-            PianoKey index = c.indices[j];
-            if (index >= 0 && index < NUM_PIANO_KEYS) {
-                double freq = piano_key_frequencies[index];
-                sprintf(score_event, "i1 %f %f %f %f", current_time, event.duration, freq, amp);
-                csoundInputMessage(csound, score_event);
+            switch (current_track.type) {
+                case TRACK_MELODY: {
+                    double freq = piano_key_frequencies[event.value];
+                    double amp = 0.5; // 旋律音量
+                    sprintf(score_event, "i1 %f %f %f %f", current_time, event.duration, freq, amp);
+                    csoundInputMessage(csound, score_event);
+                    printf("  Note: time=%.2f, dur=%.2f, freq=%.2f\n", current_time, event.duration, freq);
+                    break;
+                }
+                case TRACK_CHORD: {
+                    struct Chord c = chords[event.value];
+                    double amp = 0.3; // 和弦音量
+                    printf("  Chord %s: time=%.2f, dur=%.2f\n", c.key, current_time, event.duration);
+                    for (int j = 0; j < 3; j++) {
+                        PianoKey index = c.indices[j];
+                        double freq = piano_key_frequencies[index];
+                        sprintf(score_event, "i1 %f %f %f %f", current_time, event.duration, freq, amp);
+                        csoundInputMessage(csound, score_event);
+                    }
+                    break;
+                }
             }
+            current_time += event.duration;
         }
-        current_time += event.duration; // 推進這個聲部的時間
     }
 
     // 5. 啟動 Csound 引擎並執行
