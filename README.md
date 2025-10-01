@@ -1,16 +1,19 @@
 # Csound Polyphonic Music Player
 
-This is a command-line music player built with C and the Csound API. It programmatically generates a polyphonic score and synthesizes it into audio in real-time. The current example plays "Twinkle, Twinkle, Little Star" with a melody and chord accompaniment.
+This is a command-line music player built with C and the Csound API. It programmatically generates a polyphonic score from structured data and synthesizes it into audio. The current example plays a variation of "Twinkle, Twinkle, Little Star" with a melody, chord accompaniment, and a bassline, demonstrating dynamic tempo changes.
 
 ## ✨ Features
 
-- **Polyphonic Support**: Can play multiple independent tracks simultaneously (e.g., melody, chords, bass).
-- **Multi-instrument Timbre**: Assign different instrument timbres to different tracks via Csound's Orchestra definition (currently includes Piano, Violin, and Viola).
+- **Polyphonic Playback**: Can play multiple independent tracks simultaneously (e.g., melody, chords, bass).
+- **Multi-instrument Timbre**: Assigns different Csound instruments to different tracks (currently includes Piano, Violin, and Viola).
+- **Dynamic Tempo & Time Signatures**: Supports tempo changes mid-piece and can handle various time signatures on a per-measure basis.
+- **Score Validation**: Includes a utility to automatically check if the notes in each measure correctly add up to the time signature's duration.
 - **Modular Design**:
-  - `main.c`: Manages the musical structure arrangement and playback flow.
-  - `instrument_piano.c`: Defines instrument data (like piano pitches and chord structures).
-  - `instruments.c`: Defines the Csound instrument timbres (ORC code).
-- **Easy to Extend**: Easily add new instrument timbres or define new musical tracks.
+  - `main.c`: The main player engine, manages playback flow and scheduling.
+  - `score.c` / `score.h`: Defines the musical score data (notes, rhythms, measures).
+  - `instruments.c`: Defines the Csound instrument timbres (the `.orc` code).
+  - `instrument_piano.c`: Defines musical constants like piano key frequencies and chord structures.
+- **Easy to Extend**: The structured design makes it simple to add new instrument timbres, modify the score, or add entirely new musical tracks.
 
 ## 📋 Requirements
 
@@ -67,20 +70,28 @@ make clean
 
 ### Modify the Music
 
-1.  **Open `main.c`**.
-2.  You can modify the `melody_events` array to change the main melody, or the `chord_events` array to change the chord progression.
+All musical score data is located in `score.c`.
+
+1.  **Open `score.c`**.
+2.  To change the melody, modify the `MusicEvent` arrays like `melody_m1`, `melody_m2`, etc. Each event consists of a note (`PianoKey` enum) and a duration (e.g., `QUARTER_NOTE`).
+3.  To change the tempo, modify the `bpm` field in the `Measure` definitions (e.g., `melody_measures`). A `bpm` of `0` means it will continue using the previous tempo.
 
 ### Add a New Track
 
-1.  **Define a new score in `main.c`**: Create a new `MusicEvent` array, for example, `bass_events`.
-2.  **Add the new track to the `all_tracks` array**:
+1.  **Define the score in `score.c`**: Create new `MusicEvent` arrays for your measures and a `Measure` array to structure them, similar to `bass_measures`.
+2.  **Declare the score in `score.h`**: Add `extern` declarations for your new `Measure` array and its count so other files can access it.
+    ```c
+    // In score.h
+    extern Measure my_new_track_measures[];
+    extern const int MY_NEW_TRACK_MEASURE_COUNT;
+    ```
+3.  **Add the track in `main.c`**: Add a new entry to the `all_tracks` array, linking your new score data to an instrument.
 
     ```c
+    // In main.c
     Track all_tracks[] = {
-        {"Piano Melody",  TRACK_MELODY, 1, melody_events, ...},
-        {"Piano Chords",  TRACK_CHORD,  1, chord_events, ...},
         // ... other tracks
-        {"My New Bassline", TRACK_MELODY, 4, bass_events, sizeof(bass_events) / sizeof(MusicEvent)} // Assuming usage of instr 4
+        {"My New Track", TRACK_MELODY, 4, my_new_track_measures, MY_NEW_TRACK_MEASURE_COUNT} // Assuming usage of instr 4
     };
     ```
 
