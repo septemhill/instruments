@@ -26,12 +26,32 @@ typedef enum {
     C7, Cs7, D7, Ds7, E7, F7, Fs7, G7, Gs7, A7, As7, B7,
     // Octave 8
     C8
-} PianoKey;
+} PianoKey; // Total 88 keys, from index 0 (A0) to 87 (C8)
+
+#define NO_NOTE -1 // A sentinel value to indicate an unused note slot in a chord.
+
+// --- Chord Type Enum (corresponds to chords array index) ---
+typedef enum {
+    CHORD_C     = 0,  // I
+    CHORD_Dm    = 1,  // ii
+    CHORD_Em    = 2,  // iii
+    CHORD_F     = 3,  // IV
+    CHORD_G     = 4,  // V
+    CHORD_Am    = 5,  // vi
+    CHORD_Bdim  = 6,  // vii°
+    CHORD_Cmaj7 = 7,  // Imaj7
+    CHORD_Dm7   = 8,  // iim7
+    CHORD_Em7   = 9,  // iiim7
+    CHORD_Fmaj7 = 10, // IVmaj7
+    CHORD_G7    = 11, // V7
+    CHORD_Am7   = 12, // vim7
+    CHORD_Bm7b5 = 13  // viim7(b5)
+} ChordType;
 
 // --- Chord Definition ---
 struct Chord {
-    const char *key;
-    PianoKey indices[3];
+    const char *name;      // The standard name of the chord (e.g., "C", "Dm7").
+    PianoKey indices[4];  // The piano keys that make up the chord (up to 4 notes).
 };
 
 // --- Public Variables ---

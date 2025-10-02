@@ -1,25 +1,30 @@
-#include "instrument_piano.h"
 #include <stdio.h> // For NULL
+#include "instrument_piano.h"
 
 // --- Variable Definitions ---
 
 double piano_key_frequencies[NUM_PIANO_KEYS];
 
+// --- Chord Definitions (Diatonic to C Major) ---
+// Triads and Seventh chords for each degree of the C Major scale.
 struct Chord chords[] = {
-    // Q: C Major (I)
-    {"Q", {C4, E4, G4}},
-    // W: D Minor (ii)
-    {"W", {D4, F4, A4}},
-    // E: E Minor (iii)
-    {"E", {E4, G4, B4}},
-    // R: F Major (IV)
-    {"R", {F4, A4, C5}},
-    // T: G Major (V)
-    {"T", {G4, B4, D4}},
-    // Y: A Minor (vi)
-    {"Y", {A4, C5, E5}},
-    // U: B Diminished (vii°)
-    {"U", {B4, D4, F4}}
+    // --- Triads ---
+    {"C",    {C4, E4, G4, NO_NOTE}}, // I:   C Major
+    {"Dm",   {D4, F4, A4, NO_NOTE}}, // ii:  D Minor
+    {"Em",   {E4, G4, B4, NO_NOTE}}, // iii: E Minor
+    {"F",    {F4, A4, C5, NO_NOTE}}, // IV:  F Major
+    {"G",    {G4, B4, D4, NO_NOTE}}, // V:   G Major
+    {"Am",   {A4, C5, E5, NO_NOTE}}, // vi:  A Minor
+    {"Bdim", {B4, D4, F4, NO_NOTE}}, // vii°:B Diminished
+
+    // --- Full Seventh Chords ---
+    {"Cmaj7", {C4, E4, G4, B4}}, // Imaj7: C Major 7th
+    {"Dm7",   {D4, F4, A4, C5}}, // iim7:  D Minor 7th
+    {"Em7",   {E4, G4, B4, D5}}, // iiim7: E Minor 7th
+    {"Fmaj7", {F4, A4, C5, E5}}, // IVmaj7:F Major 7th
+    {"G7",    {G4, B4, D4, F5}}, // V7:    G Dominant 7th
+    {"Am7",   {A4, C5, E5, G5}}, // vim7:  A Minor 7th
+    {"Bm7b5", {B4, D4, F4, A4}}, // viim7(b5): B Half-diminished 7th
 };
 const int NUM_CHORDS = sizeof(chords) / sizeof(struct Chord);
 

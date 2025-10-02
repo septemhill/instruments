@@ -113,10 +113,10 @@ int main(int argc, char **argv) {
 
     // 3. Setup Tracks
     Track all_tracks[] = {
-        {"Piano Melody",  TRACK_MELODY, 1, melody_measures, MELODY_MEASURE_COUNT},
-        {"Violin Chords", TRACK_CHORD,  2, chord_measures,  CHORD_MEASURE_COUNT},
-        {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  CHORD_MEASURE_COUNT},
-        {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   BASS_MEASURE_COUNT}
+        {"Piano Melody",  TRACK_MELODY, 1, melody_measures, MELODY_MEASURE_COUNT}, // Instrument 1: Piano
+        {"Piano Chords",  TRACK_CHORD,  1, chord_measures,  CHORD_MEASURE_COUNT},  // Instrument 1: Piano
+        // {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  CHORD_MEASURE_COUNT}, // Instrument 3: Viola
+        // {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   BASS_MEASURE_COUNT}
     };
     int num_tracks = sizeof(all_tracks) / sizeof(Track);
 
@@ -181,9 +181,12 @@ int main(int argc, char **argv) {
                     } else if (track->type == TRACK_CHORD) {
                         const struct Chord* c = get_piano_chord(event.value);
                         if (c) {
-                            for (int j = 0; j < 3; j++) {
-                                double freq = get_piano_frequency(c->indices[j]);
-                                sprintf(score_event, "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.25);
+                            // Loop through up to 4 notes in the chord.
+                            // Stop if a NO_NOTE sentinel is found.
+                            for (int j = 0; j < 4 && c->indices[j] != NO_NOTE; j++) {
+                                PianoKey key = c->indices[j];
+                                double freq = get_piano_frequency(key);
+                                sprintf(score_event, "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.2);
                                 csoundInputMessage(csound, score_event);
                             }
                         }
