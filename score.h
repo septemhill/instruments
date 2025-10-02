@@ -24,7 +24,7 @@ typedef struct {
  * and tempo for that segment of music.
  */
 typedef struct {
-    MusicEvent *events;          /**< A pointer to an array of MusicEvent structures. */
+    MusicEvent* events;          /**< A pointer to an array of MusicEvent structures. */
     int event_count;             /**< The number of events in this measure. */
     int beats_per_measure;       /**< The numerator of the time signature (e.g., 4 for 4/4 time). */
     int beat_unit;               /**< The denominator of the time signature (e.g., 4 for a quarter-note beat). */
@@ -58,5 +58,13 @@ extern const int CHORD_MEASURE_COUNT;
 extern Measure bass_measures[];
 extern const int BASS_MEASURE_COUNT;
 
+// --- Test/Example Score Data ---
+extern MusicEvent allKeys[];
+extern const int ALL_KEYS_EVENT_COUNT;
+
+extern MusicEvent north_events[];
+extern const int NORTH_EVENT_COUNT;
+extern Measure north_measures[];
+extern const int NORTH_MEASURE_COUNT;
 
 #endif // SCORE_H

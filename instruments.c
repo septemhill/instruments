@@ -11,6 +11,12 @@
 // into a single static string, which is highly efficient and safe.
 #define LINE(s) s "\n"
 
+// A macro to wrap the instrument definition boilerplate.
+// It takes the instrument name and the body of the instrument code.
+#define DEFINE_INSTRUMENT(name, body) \
+    LINE("; Instrument: " #name)       \
+    LINE("instr " #name) body LINE("endin") LINE("")
+
 static const char* get_orc_header()
 {
     return LINE("sr = 44100")
@@ -22,8 +28,7 @@ static const char* get_orc_header()
 
 static const char* get_piano_instr()
 {
-    return LINE("; Instrument 1: Piano")
-        LINE("instr 1")
+    return DEFINE_INSTRUMENT(1,
         LINE("    i_freq = p4")
         LINE("    i_amp = p5")
         LINE("    i_dur = p3")
@@ -34,15 +39,12 @@ static const char* get_piano_instr()
         LINE("    a_env3 linsegr 0, 0.01, i_amp*0.3, i_dur*0.4, 0")
         LINE("    a_sig3 oscili a_env3, i_freq*3.01")
         LINE("    a_mix = (a_sig1 + a_sig2 + a_sig3) * 0.5")
-        LINE("    outs a_mix, a_mix")
-        LINE("endin")
-        LINE("");
+        LINE("    outs a_mix, a_mix"));
 }
 
 static const char* get_violin_instr()
 {
-    return LINE("; Instrument 2: Violin")
-        LINE("instr 2")
+    return DEFINE_INSTRUMENT(2,
         LINE("    i_freq = p4")
         LINE("    i_amp = p5")
         LINE("    i_dur = p3")
@@ -54,15 +56,12 @@ static const char* get_violin_instr()
         LINE("    k_vib oscili 5, 5.5")
         LINE("    a_vibrato oscili a_env*0.8, i_freq+k_vib")
         LINE("    a_mix = (a_sig1 + a_sig2 + a_sig3 + a_sig4 + a_vibrato) * 0.3")
-        LINE("    outs a_mix, a_mix")
-        LINE("endin")
-        LINE("");
+        LINE("    outs a_mix, a_mix"));
 }
 
 static const char* get_viola_instr()
 {
-    return LINE("; Instrument 3: Viola")
-        LINE("instr 3")
+    return DEFINE_INSTRUMENT(3,
         LINE("    i_freq = p4")
         LINE("    i_amp = p5")
         LINE("    i_dur = p3")
@@ -74,9 +73,7 @@ static const char* get_viola_instr()
         LINE("    k_vib oscili 4, 4.8")
         LINE("    a_vibrato oscili a_env*0.7, i_freq+k_vib")
         LINE("    a_mix = (a_sig1 + a_sig2 + a_sig3 + a_sig4 + a_vibrato) * 0.35")
-        LINE("    outs a_mix, a_mix")
-        LINE("endin")
-        LINE("");
+        LINE("    outs a_mix, a_mix"));
 }
 
 char* get_orchestra_string() {
