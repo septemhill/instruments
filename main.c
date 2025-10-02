@@ -35,11 +35,11 @@ typedef enum {
  * A track is a sequence of measures played by a specific instrument.
  */
 typedef struct {
-    const char *name;    /**< The name of the track, used for logging and identification. */
-    TrackType type;      /**< The type of the track (e.g., melody or chord). */
-    int instrument;      /**< The Csound instrument number (from the orchestra) to use for this track. */
-    Measure *measures;   /**< A pointer to an array of Measure structures that make up the track's score. */
-    int measure_count;   /**< The total number of measures in the track. */
+    const char* name;  /**< The name of the track, used for logging and identification. */
+    TrackType type;    /**< The type of the track (e.g., melody or chord). */
+    int instrument;    /**< The Csound instrument number (from the orchestra) to use for this track. */
+    Measure* measures; /**< A pointer to an array of Measure structures that make up the track's score. */
+    int measure_count; /**< The total number of measures in the track. */
 } Track;
 
 // --- Cleanup Functions ---
@@ -67,7 +67,7 @@ void validate_score(Track* tracks, int num_tracks) {
             // Compare with a small tolerance for floating point inaccuracies.
             if (fabs(total_duration_in_quarter_notes - expected_duration) > 1e-6) {
                 printf("  [WARNING] Track '%s', Measure %d: For %d/%d time, expected total duration of %.2f quarter notes, but found %.2f.\n",
-                       tracks[t].name, m + 1, measure->beats_per_measure, measure->beat_unit, expected_duration, total_duration_in_quarter_notes);
+                    tracks[t].name, m + 1, measure->beats_per_measure, measure->beat_unit, expected_duration, total_duration_in_quarter_notes);
             }
         }
     }
@@ -84,11 +84,11 @@ void cleanup(CSOUND* csound) {
 
 // --- Main Program ---
 
-int main(int argc, char **argv) {
+int main() {
     // 1. Initialization
     generate_piano_frequencies();
 
-    CSOUND *csound = csoundCreate(NULL);
+    CSOUND* csound = csoundCreate(NULL);
     atexit(restore_terminal);
     if (csound == NULL) {
         fprintf(stderr, "Error: Failed to create Csound instance.\n");
@@ -98,13 +98,13 @@ int main(int argc, char **argv) {
     // 2. Compile Orchestra
     // Set output to a WAV file instead of real-time audio.
     csoundSetOption(csound, "-odac");
-    char *orc = get_orchestra_string();
+    char* orc = get_orchestra_string();
     if (orc == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for orchestra string.\n");
         cleanup(csound);
         return 1;
     }
-    
+
     if (csoundCompileOrc(csound, orc) != 0) {
         fprintf(stderr, "Error: Orchestra compilation failed.\n");
         free(orc);
@@ -276,7 +276,7 @@ int main(int argc, char **argv) {
         // {"Piano Chords",  TRACK_CHORD,  1, chord_measures,  CHORD_MEASURE_COUNT},  // Instrument 1: Piano
         // {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  CHORD_MEASURE_COUNT}, // Instrument 3: Viola
         // {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   BASS_MEASURE_COUNT}
-        {"Piano Melody",  TRACK_MELODY, 1, measures, 1},
+        {"Piano Melody", TRACK_MELODY, 1, measures, 1},
     };
     int num_tracks = sizeof(all_tracks) / sizeof(Track);
 
@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
     validate_score(all_tracks, num_tracks);
 
     // 4. Setup Real-time Player State
-    TrackState *track_states = (TrackState*)calloc(num_tracks, sizeof(TrackState));
+    TrackState* track_states = (TrackState*)calloc(num_tracks, sizeof(TrackState));
     if (track_states == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for track states.\n");
         free(orc);
@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
     printf("\nStarting Csound playback...\n");
     int performance_running = 1;
     if (csoundStart(csound) == 0) {
-        // The loop continues as long as there are events to schedule OR 
+        // The loop continues as long as there are events to schedule OR
         // the score time has not yet reached the end of the last note.
         while ((performance_running || csoundGetScoreTime(csound) < max_end_time) && csoundPerformKsmps(csound) == 0) {
             double current_time_sec = csoundGetScoreTime(csound);
@@ -307,8 +307,8 @@ int main(int argc, char **argv) {
                 performance_running = 0; // Assume finished unless a track is still active
             }
             for (int t = 0; t < num_tracks; t++) {
-                Track *track = &all_tracks[t];
-                TrackState *ts = &track_states[t];
+                Track* track = &all_tracks[t];
+                TrackState* ts = &track_states[t];
 
                 if (ts->current_measure >= track->measure_count) {
                     continue; // This track is finished
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
                 }
 
                 if (current_time_sec >= ts->next_event_time) {
-                    Measure *measure = &track->measures[ts->current_measure];
+                    Measure* measure = &track->measures[ts->current_measure];
 
                     // Check for BPM change at the start of a measure (only for the first track to avoid conflicts)
                     if (t == 0 && ts->current_event_in_measure == 0 && measure->bpm > 0 && current_bpm != measure->bpm) {
@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
                     }
 
                     MusicEvent event = measure->events[ts->current_event_in_measure];
-                    
+
                     // Calculate duration in seconds based on CURRENT BPM
                     double quarter_note_sec = 60.0 / current_bpm;
                     double duration_in_sec = event.duration * quarter_note_sec;
@@ -336,9 +336,10 @@ int main(int argc, char **argv) {
                         char score_event[128];
                         if (track->type == TRACK_MELODY) {
                             double freq = get_piano_frequency(event.value);
-                           sprintf(score_event , "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.5);
+                            sprintf(score_event, "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.5);
                             csoundInputMessage(csound, score_event);
-                        } else if (track->type == TRACK_CHORD) {
+                        }
+                        else if (track->type == TRACK_CHORD) {
                             const struct Chord* c = get_piano_chord(event.value);
                             if (c) {
                                 // Loop through up to 4 notes in the chord.
