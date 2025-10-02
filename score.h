@@ -15,6 +15,8 @@ typedef struct {
     double duration; /**< The duration of the event in beats, where 1.0 represents a quarter note. */
 } MusicEvent;
 
+#define REST -1 /**< A sentinel value for MusicEvent.value to indicate a rest (silence). */
+
 /**
  * @brief Represents a single measure of music.
  *
@@ -35,6 +37,15 @@ extern const double HALF_NOTE;      // 2.0 beats
 extern const double WHOLE_NOTE;     // 4.0 beats
 extern const double EIGHTH_NOTE;    // 0.5 beats
 extern const double SIXTEENTH_NOTE; // 0.25 beats
+extern const double THIRTY_SECOND_NOTE; // 0.125 beats
+extern const double SIXTY_FOURTH_NOTE; // 0.0625 beats
+extern const double ONE_TWENTY_EIGHTH_NOTE; // 0.03125 beats
+
+// Dotted notes
+extern const double DOTTED_HALF_NOTE;      // 3.0 beats
+extern const double DOTTED_QUARTER_NOTE;   // 1.5 beats
+extern const double DOTTED_EIGHTH_NOTE;    // 0.75 beats
+extern const double DOTTED_SIXTEENTH_NOTE; // 0.375 beats
 
 // --- Public Score Data ---
 

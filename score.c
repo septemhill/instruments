@@ -8,6 +8,15 @@ const double HALF_NOTE      = 2.0;  // A half note is 2 beats.
 const double WHOLE_NOTE     = 4.0;  // A whole note is 4 beats.
 const double EIGHTH_NOTE    = 0.5;  // An eighth note is 1/2 beat.
 const double SIXTEENTH_NOTE = 0.25; // A sixteenth note is 1/4 beat.
+const double THIRTY_SECOND_NOTE = 0.125; // A 32nd note is 1/8 beat.
+const double SIXTY_FOURTH_NOTE = 0.0625; // A 64th note is 1/16 beat.
+const double ONE_TWENTY_EIGHTH_NOTE = 0.03125; // A 128th note is 1/32 beat.
+
+// Dotted notes (duration is 1.5 times the original note's value)
+const double DOTTED_HALF_NOTE      = HALF_NOTE * 1.5;      // 3.0 beats
+const double DOTTED_QUARTER_NOTE   = QUARTER_NOTE * 1.5;   // 1.5 beats
+const double DOTTED_EIGHTH_NOTE    = EIGHTH_NOTE * 1.5;    // 0.75 beats
+const double DOTTED_SIXTEENTH_NOTE = SIXTEENTH_NOTE * 1.5; // 0.375 beats
 
 // --- Melody Track Data ---
 MusicEvent melody_m1[] = {{C4, QUARTER_NOTE}, {C4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}};

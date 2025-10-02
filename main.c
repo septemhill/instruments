@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "instrument_piano.h"
 #include "instruments.h"
 #include "score.h"
@@ -111,12 +112,171 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    MusicEvent allKeys[] = {
+        // {C1, QUARTER_NOTE},
+        // {Cs1, QUARTER_NOTE},
+        // {D1, QUARTER_NOTE},
+        // {Ds1, QUARTER_NOTE},
+        // {E1, QUARTER_NOTE},
+        // {F1, QUARTER_NOTE},
+        // {Fs1, QUARTER_NOTE},
+        // {G1, QUARTER_NOTE},
+        // {Gs1, QUARTER_NOTE},
+        // {A1, QUARTER_NOTE},
+        // {As1, QUARTER_NOTE},
+        // {B1, QUARTER_NOTE},
+
+        // {C2, QUARTER_NOTE},
+        // {Cs2, QUARTER_NOTE},
+        // {D2, QUARTER_NOTE},
+        // {Ds2, QUARTER_NOTE},
+        // {E2, QUARTER_NOTE},
+        // {F2, QUARTER_NOTE},
+        // {Fs2, QUARTER_NOTE},
+        // {G2, QUARTER_NOTE},
+        // {Gs2, QUARTER_NOTE},
+        // {A2, QUARTER_NOTE},
+        // {As2, QUARTER_NOTE},
+        // {B2, QUARTER_NOTE},
+
+        // {C3, QUARTER_NOTE},
+        // {Cs3, QUARTER_NOTE},
+        // {D3, QUARTER_NOTE},
+        // {Ds3, QUARTER_NOTE},
+        // {E3, QUARTER_NOTE},
+        // {F3, QUARTER_NOTE},
+        // {Fs3, QUARTER_NOTE},
+        // {G3, QUARTER_NOTE},
+        // {Gs3, QUARTER_NOTE},
+        // {A3, QUARTER_NOTE},
+        // {As3, QUARTER_NOTE},
+        // {B3, QUARTER_NOTE},
+
+        // {C4, QUARTER_NOTE},
+        // {Cs4, QUARTER_NOTE},
+        // {D4, QUARTER_NOTE},
+        // {Ds4, QUARTER_NOTE},
+        // {E4, QUARTER_NOTE},
+        // {F4, QUARTER_NOTE},
+        // {Fs4, QUARTER_NOTE},
+        // {G4, QUARTER_NOTE},
+        // {Gs4, QUARTER_NOTE},
+        // {A4, QUARTER_NOTE},
+        // {As4, QUARTER_NOTE},
+        // {B4, QUARTER_NOTE},
+
+        // {C5, QUARTER_NOTE},
+        // {Cs5, QUARTER_NOTE},
+        // {D5, QUARTER_NOTE},
+        // {Ds5, QUARTER_NOTE},
+        // {E5, QUARTER_NOTE},
+        // {F5, QUARTER_NOTE},
+        // {Fs5, QUARTER_NOTE},
+        // {G5, QUARTER_NOTE},
+        // {Gs5, QUARTER_NOTE},
+        // {A5, QUARTER_NOTE},
+        // {As5, QUARTER_NOTE},
+        // {B5, QUARTER_NOTE},
+
+        // {C6, QUARTER_NOTE},
+        // {Cs6, QUARTER_NOTE},
+        // {D6, QUARTER_NOTE},
+        // {Ds6, QUARTER_NOTE},
+        // {E6, QUARTER_NOTE},
+        // {F6, QUARTER_NOTE},
+        // {Fs6, QUARTER_NOTE},
+        // {G6, QUARTER_NOTE},
+        // {Gs6, QUARTER_NOTE},
+        // {A6, QUARTER_NOTE},
+        // {As6, QUARTER_NOTE},
+        // {B6, QUARTER_NOTE},
+
+        // {C7, QUARTER_NOTE},
+        // {Cs7, QUARTER_NOTE},
+        // {D7, QUARTER_NOTE},
+        // {Ds7, QUARTER_NOTE},
+        // {E7, QUARTER_NOTE},
+        // {F7, QUARTER_NOTE},
+        // {Fs7, QUARTER_NOTE},
+        // {G7, QUARTER_NOTE},
+        // {Gs7, QUARTER_NOTE},
+        // {A7, QUARTER_NOTE},
+        // {As7, QUARTER_NOTE},
+        // {B7, QUARTER_NOTE},
+
+        {REST, QUARTER_NOTE},
+        {REST, QUARTER_NOTE},
+    };
+
+    MusicEvent north[] = {
+        {B3, QUARTER_NOTE},
+        {REST, EIGHTH_NOTE},
+
+        {C4, THIRTY_SECOND_NOTE},
+        {B3, THIRTY_SECOND_NOTE},
+        {As3, EIGHTH_NOTE},
+        {B3, EIGHTH_NOTE},
+
+        {G4, EIGHTH_NOTE},
+        {B3, EIGHTH_NOTE},
+        {G4, DOTTED_HALF_NOTE},
+
+        {B3, QUARTER_NOTE},
+        {REST, EIGHTH_NOTE},
+
+        {C4, THIRTY_SECOND_NOTE},
+        {B3, THIRTY_SECOND_NOTE},
+        {As3, EIGHTH_NOTE},
+        {B3, EIGHTH_NOTE},
+
+        {A4, EIGHTH_NOTE},
+        {C4, EIGHTH_NOTE},
+        {A4, DOTTED_HALF_NOTE},
+
+        {B3, QUARTER_NOTE},
+        {REST, EIGHTH_NOTE},
+
+        {C4, THIRTY_SECOND_NOTE},
+        {B3, THIRTY_SECOND_NOTE},
+        {As3, EIGHTH_NOTE},
+        {B3, EIGHTH_NOTE},
+
+        {B4, EIGHTH_NOTE},
+        {D4, EIGHTH_NOTE},
+        {B4, DOTTED_QUARTER_NOTE},
+        {D4, EIGHTH_NOTE},
+
+        {B4, EIGHTH_NOTE},
+        {D4, EIGHTH_NOTE},
+        {B4, DOTTED_QUARTER_NOTE},
+        {D4, EIGHTH_NOTE},
+
+        {B4, EIGHTH_NOTE},
+        {A4, EIGHTH_NOTE},
+        {A4, EIGHTH_NOTE},
+        {G4, EIGHTH_NOTE},
+        {G4, EIGHTH_NOTE},
+        {F4, EIGHTH_NOTE},
+        {F4, EIGHTH_NOTE},
+        {E4, EIGHTH_NOTE},
+        {E4, HALF_NOTE},
+
+        {REST, QUARTER_NOTE},
+        {REST, QUARTER_NOTE},
+    };
+
+    Measure measures[] = {
+        {north, sizeof(north) / sizeof(MusicEvent), 4, 4, 98.0},
+        // {allKeys, sizeof(allKeys) / sizeof(MusicEvent), 4, 4, 98.0},
+    };
+
     // 3. Setup Tracks
     Track all_tracks[] = {
-        {"Piano Melody",  TRACK_MELODY, 1, melody_measures, MELODY_MEASURE_COUNT}, // Instrument 1: Piano
-        {"Piano Chords",  TRACK_CHORD,  1, chord_measures,  CHORD_MEASURE_COUNT},  // Instrument 1: Piano
+        // {"Piano Melody",  TRACK_MELODY, 1, melody_measures, MELODY_MEASURE_COUNT}, // Instrument 1: Piano
+        // {"Piano Chords",  TRACK_CHORD,  1, chord_measures,  CHORD_MEASURE_COUNT},  // Instrument 1: Piano
         // {"Viola Chords",  TRACK_CHORD,  3, chord_measures,  CHORD_MEASURE_COUNT}, // Instrument 3: Viola
         // {"Piano Bass",    TRACK_MELODY, 1, bass_measures,   BASS_MEASURE_COUNT}
+        {"Piano Melody",  TRACK_MELODY, 1, measures, 1},
     };
     int num_tracks = sizeof(all_tracks) / sizeof(Track);
 
@@ -172,22 +332,23 @@ int main(int argc, char **argv) {
                     double quarter_note_sec = 60.0 / current_bpm;
                     double duration_in_sec = event.duration * quarter_note_sec;
 
-                    // Send score event to Csound
-                    char score_event[128];
-                    if (track->type == TRACK_MELODY) {
-                        double freq = get_piano_frequency(event.value);
-                        sprintf(score_event, "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.5);
-                        csoundInputMessage(csound, score_event);
-                    } else if (track->type == TRACK_CHORD) {
-                        const struct Chord* c = get_piano_chord(event.value);
-                        if (c) {
-                            // Loop through up to 4 notes in the chord.
-                            // Stop if a NO_NOTE sentinel is found.
-                            for (int j = 0; j < 4 && c->indices[j] != NO_NOTE; j++) {
-                                PianoKey key = c->indices[j];
-                                double freq = get_piano_frequency(key);
-                                sprintf(score_event, "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.2);
-                                csoundInputMessage(csound, score_event);
+                    if (event.value != REST) {
+                        char score_event[128];
+                        if (track->type == TRACK_MELODY) {
+                            double freq = get_piano_frequency(event.value);
+                           sprintf(score_event , "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.5);
+                            csoundInputMessage(csound, score_event);
+                        } else if (track->type == TRACK_CHORD) {
+                            const struct Chord* c = get_piano_chord(event.value);
+                            if (c) {
+                                // Loop through up to 4 notes in the chord.
+                                // Stop if a NO_NOTE sentinel is found.
+                                for (int j = 0; j < 4 && c->indices[j] != NO_NOTE; j++) {
+                                    PianoKey key = c->indices[j];
+                                    double freq = get_piano_frequency(key);
+                                    sprintf(score_event, "i%d %f %f %f %f", track->instrument, 0.0, duration_in_sec, freq, 0.2);
+                                    csoundInputMessage(csound, score_event);
+                                }
                             }
                         }
                     }
@@ -209,6 +370,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    // sleep(2);
     // 6. Clean up resources
     printf("\nPlayback finished. Cleaning up Csound resources.\n");
     free(orc);
