@@ -30,9 +30,11 @@ typedef struct {
 } Measure;
 
 // --- Note Duration Constants (in beats) ---
-extern const double QUARTER_NOTE;
-extern const double HALF_NOTE;
-extern const double WHOLE_NOTE;
+extern const double QUARTER_NOTE;   // 1.0 beats
+extern const double HALF_NOTE;      // 2.0 beats
+extern const double WHOLE_NOTE;     // 4.0 beats
+extern const double EIGHTH_NOTE;    // 0.5 beats
+extern const double SIXTEENTH_NOTE; // 0.25 beats
 
 // --- Public Score Data ---
 

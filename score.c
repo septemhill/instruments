@@ -3,9 +3,11 @@
 // --- "Twinkle, Twinkle, Little Star" Score Definition ---
 
 // Note durations are now defined in "beats" relative to a quarter note.
-const double QUARTER_NOTE = 1.0; // A quarter note is 1 beat.
-const double HALF_NOTE    = 2.0; // A half note is 2 beats.
-const double WHOLE_NOTE   = 4.0; // A whole note is 4 beats.
+const double QUARTER_NOTE   = 1.0;  // A quarter note is 1 beat.
+const double HALF_NOTE      = 2.0;  // A half note is 2 beats.
+const double WHOLE_NOTE     = 4.0;  // A whole note is 4 beats.
+const double EIGHTH_NOTE    = 0.5;  // An eighth note is 1/2 beat.
+const double SIXTEENTH_NOTE = 0.25; // A sixteenth note is 1/4 beat.
 
 // --- Melody Track Data ---
 MusicEvent melody_m1[] = {{C4, QUARTER_NOTE}, {C4, QUARTER_NOTE}, {G4, QUARTER_NOTE}, {G4, QUARTER_NOTE}};
