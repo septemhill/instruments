@@ -1,2 +1,5 @@
 csound_example
 *.o
+.zig-cache
+.vscode/
+zig-out
